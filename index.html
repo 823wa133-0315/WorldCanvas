@@ -323,6 +323,7 @@ textarea { width: 100%; box-sizing: border-box; border: 2px solid #000; border-r
         </div>
         </div>
     </details>
+            </div>
         
         <button class="menu-btn" onclick="renderWorlds(); show('worlds')">🌍 自分の世界一覧</button>
         <button class="menu-btn" style="background:#e3f2fd; border-color:#2196f3;" onclick="openOnlineWorldsPage()">🌐 皆の世界（オンライン共有）</button>
@@ -2234,7 +2235,6 @@ function compressImage(file, maxWidth = 800, quality = 0.75) {
                 const canvas = document.createElement('canvas');
                 canvas.width = width;
                 canvas.height = height;
-                
                 const ctx = canvas.getContext('2d');
                 ctx.imageSmoothingEnabled = true;
                 ctx.imageSmoothingQuality = 'high';
