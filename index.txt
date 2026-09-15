@@ -1,0 +1,2306 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorldCanvas</title>
+
+<style>
+/* 🎨 全体の設定 */
+body {
+    font-family: sans-serif;
+    margin: 0;
+    background: #ffffff;
+    color: #000000;
+}
+
+#top {
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+header {
+    text-align: center;
+    border-bottom: 2px solid #000;
+    padding: 12px 0;
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
+.menu-btn {
+    display: block;
+    width: 100%;
+    border: 2px solid #000;
+    border-radius: 15px;
+    background: #ffffff;
+    padding: 14px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+    color: #000;
+    text-decoration: none;
+}
+    
+.menu-btn:active {
+    background: #e0e0e0;
+}
+
+.box-frame, .box {
+    border: 2px solid #000;
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 15px;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.flag-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+}
+
+.container { padding: 16px; max-width: 500px; margin: 0 auto; }
+
+.page { display: none !important; }
+.page.active { display: block !important; }
+
+.flex-space { display: flex; justify-content: space-between; align-items: center; }
+.small-text { font-size: 12px; color: #666; }
+.edit-header-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.region-section-title { font-size: 14px; font-weight: bold; color: #000; margin: 15px 0 8px 0; padding-left: 5px; border-left: 3px solid #000; }
+.flag-cell { text-align: center; font-size: 2.3rem; position: relative; padding-bottom: 15px; display: flex; flex-direction: column; align-items: center; }
+.flag-icon-click { cursor: pointer; user-select: none; }
+.flag-cell .plus-badge { position: absolute; top: 24px; font-size: 0.8rem; font-weight: bold; color: red; pointer-events: none; }
+
+/* 🔍 画像拡大表示 */
+.lightbox-overlay { display: none !important; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); justify-content: center; align-items: center; z-index: 2000; flex-direction: column; padding: 20px; box-sizing: border-box; }
+.lightbox-overlay.active { display: flex !important; }
+.lightbox-content-wrap { position: relative; max-width: 100%; max-height: 80%; display: flex; flex-direction: column; align-items: center; }
+.lightbox-img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 5px; }
+.lightbox-caption { color: #fff; margin-top: 15px; font-size: 14px; text-align: center; font-weight: bold; word-break: break-all; max-width: 90%; white-space: pre-wrap; }
+.lightbox-close-btn { position: absolute; top: -40px; right: 0; color: #fff; font-size: 30px; font-weight: bold; cursor: pointer; background: none; border: none; user-select: none; }
+
+/* 📦 モーダル用 */
+.modal-overlay { display: none !important; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+.modal-overlay.active { display: flex !important; }
+.modal-box { background: #fff; border: 2px solid #000; padding: 20px; text-align: center; width: 80%; max-width: 320px; border-radius: 10px; }
+.modal-box input, .modal-box textarea { width: 90%; padding: 8px; margin: 10px 0; border: 2px solid #000; border-radius: 8px; box-sizing: border-box; }
+.modal-box input { text-align: center; }
+.modal-flex { display: flex; justify-content: space-around; margin-top: 15px; }
+.modal-btn { border: 1px solid #000; background: #fff; padding: 5px 15px; cursor: pointer; border-radius: 5px; font-weight: bold; }
+
+/* 💾 共有エリア */
+.share-section { margin-top: 20px; border: 2px solid #000; padding: 15px; border-radius: 15px; background: #fafafa; }
+.share-title { font-size: 15px; font-weight: bold; margin-bottom: 10px; text-align: center; color: #000; }
+.share-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.share-sub-btn { border: 2px solid #000; border-radius: 10px; padding: 12px 8px; font-size: 13px; font-weight: bold; background: #fff; cursor: pointer; text-align: center; display: block; width: 100%; box-sizing: border-box; color: #000; text-decoration: none; }
+.share-sub-btn:active { background: #eee; }
+
+.char-counter { text-align: right; font-size: 11px; color: #666; margin-top: 2px; margin-bottom: 5px; font-weight: bold; }
+textarea { width: 100%; box-sizing: border-box; border: 2px solid #000; border-radius: 8px; padding: 8px; resize: none; font-family: sans-serif; }
+.relation-row { display: flex; gap: 5px; margin-bottom: 5px; align-items: center; }
+
+/* 🆕 ダッシュボードレイアウト */
+.fixed-dashboard-layout.active {
+    display: flex !important;
+    flex-direction: column;
+    height: auto !important;
+    min-height: 100vh;
+    box-sizing: border-box;
+    padding: 10px;
+    gap: 15px;
+}
+
+.dashboard-main-grid { display: flex; flex-direction: column; gap: 15px; }
+.row-grid-1 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.row-grid-1 .single-image-wrapper { aspect-ratio: 3 / 4; width: 100%; height: auto; }
+.row-grid-2 { display: grid; grid-template-columns: 0.7fr 0.7fr 1.4fr; gap: 10px; }
+.sub-vertical-image-grid { display: flex; flex-direction: column; gap: 6px; }
+.row-grid-2 .single-image-wrapper { aspect-ratio: 1 / 1; width: 100%; height: auto; }
+.row-grid-3 { display: grid; grid-template-columns: 2fr 1.5fr; gap: 10px; }
+.sub-horizontal-image-grid { display: flex; flex-direction: column; gap: 6px; }
+.row-grid-3 .single-image-wrapper { aspect-ratio: 4 / 3; width: 100%; height: auto; }
+
+.scroll-box {
+    display: flex;
+    flex-direction: column;
+    border: 2px solid #000;
+    border-radius: 12px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    box-sizing: border-box;
+    min-height: 120px;
+    overflow-y: auto;
+    max-height: 100%;
+}
+
+.single-image-wrapper {
+    background: #f0f0f0;
+    border: 2px solid #000;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-sizing: border-box;
+    position: relative;
+    max-height: 100%;
+    max-width: 100%;
+}
+.single-image-wrapper img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.single-image-wrapper .dummy-txt { font-size: 11px; color: #888; text-align: center; }
+.single-image-wrapper .img-delete-btn {
+    position: absolute; top: 4px; right: 4px; background: red; color: #fff;
+    border-radius: 50%; width: 18px; height: 18px; font-size: 11px;
+    line-height: 18px; text-align: center; cursor: pointer; font-weight: bold; z-index: 5;
+}
+
+.dashboard-footer { display: flex; gap: 10px; margin: 0; }
+.dashboard-footer .menu-btn { margin-bottom: 0; }
+
+.area-settings {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 15px !important;
+    padding: 5px !important;
+    background: #fffde6 !important;
+    border: 2px solid #e6db55 !important;
+    border-radius: 12px;
+    width: 45px !important;
+    box-sizing: border-box !important;
+}
+
+.world-setting-box {
+    border: 2px solid #000;
+    border-radius: 12px;
+    padding: 12px;
+    background: #f9f9f9;
+    margin-bottom: 15px;
+}
+.world-setting-title {
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+@media screen and (max-width: 767px) {
+    .fixed-dashboard-layout.active { height: auto !important; padding: 8px !important; gap: 10px !important; }
+    .row-grid-1, .row-grid-2, .row-grid-3 { gap: 6px !important; }
+    .scroll-box { overflow-y: auto !important; padding: 6px 8px !important; min-height: 0 !important; }
+    .row-grid-1 .scroll-box { height: 146px !important; }
+    .row-grid-2 .scroll-box { height: 175px !important; }
+    .row-grid-3 .scroll-box { height: 225px !important; }
+    .scroll-box textarea { height: 80% !important; min-height: 60px !important; }
+}
+
+    /* 使用方法コンテナ */
+.usage-guide-container {
+  margin: 16px 0;
+}
+
+/* 表示切り替えボタン */
+.btn-toggle-guide {
+  padding: 8px 16px;
+  background-color: #2b6cb0;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-toggle-guide:hover {
+  background-color: #2c5282;
+}
+
+/* 縦に連なる画像リスト設定 */
+.guide-images-list {
+  display: flex;
+  flex-direction: column; 
+  gap: 16px;
+  margin-top: 12px;
+  padding: 16px;
+  background-color: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+/* 非表示制御用クラス */
+.guide-images-list.hidden {
+  display: none;
+}
+
+/* 連なる各画像とキャプションの枠組み */
+.guide-item-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.guide-image-item {
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.guide-image-caption {
+  font-size: 0.85rem;
+  color: #4a5568;
+  margin-top: 6px;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<div id="top" class="page active">
+    <div class="container">
+        <header>WorldCanvas</header>
+        <br>
+        <div class="box-frame">
+            <div style="font-weight: bold; margin-bottom: 5px; text-align: center;">国家系創作支援サイト</div>
+            <p style="text-align: center; font-size: 13px; color: #333; margin: 5px 0 10px 0;">
+                WorldCanvasは**国家系創作(CH、PB、国擬人化等)**の設定及びデザイン管理サイトです。
+            </p>
+    <details style="border-top: 1px dashed #ccc; padding-top: 8px;">
+        <summary style="text-align: center; font-size: 12px; font-weight: bold; color: #0066cc; cursor: pointer; user-select: none; padding: 4px 0;">
+            📖 サイト説明・使い方を表示
+        </summary>
+        
+        <div style="margin-top: 10px; font-size: 11px; color: #444; line-height: 1.5; text-align: left;">
+            <div style="margin-bottom: 8px;">
+                <p style="text-align: center; font-size: 13px; color: #333; margin: 5px 0 10px 0;"><strong>各機能の紹介</strong></p>
+                <strong>🌍 自分の世界一覧</strong><br>
+               世界を作成し、各国の設定を管理🎌<br>
+            </div>
+
+            <div style="margin-bottom: 8px;">
+                <strong>🌐皆の世界(オンライン共有)</strong><br>
+                公開された全ユーザーの世界を閲覧。ルームコード指定による限定公開も可能🙆‍♀️<br>
+            </div>
+
+            <div style="margin-bottom: 8px;">
+                <strong>🎲 ランダム表示</strong><br>
+                ランダムに一つの設定ページを表示。
+            </div>
+            
+            <div style="margin-bottom: 8px;">
+                <strong>📦️所持データの共有・読み込み</strong><br>
+                JSONの保存と読み込み。所持データのローカル共有。<br>※JSONで共有されたデータは最新状態への更新が行われません
+            </div>
+
+                        <div style="margin-bottom: 10px;">
+                <p style="text-align: center; font-size: 13px; color: #333; margin: 5px 0 10px 0;"><strong>操作方法・利用規約</strong></p>
+<div class="usage-guide-container">
+  <button id="toggleGuideBtn" class="btn-toggle-guide" type="button">
+    📖 使用方法を表示
+  </button>
+  <div id="guideImagesArea" class="guide-images-list hidden">
+  </div>
+</div>
+<div class="checklist-link-container" id="checklistLinkArea">
+  <a href="https://823wa133-0315.github.io/countrycheck/" target="_blank" rel="noopener noreferrer" class="btn-checklist">
+    📋 擬人化チェックシートを開く
+  </a>
+</div>
+                <div style="margin-bottom: 8px;">
+                <p style="text-align: center; font-size: 13px; color: #333; margin: 5px 0 10px 0;">
+        サイトは趣味の範囲で制作したものです。問題あれば即時削除します。
+    </p>
+            </div>
+        </div>
+        </div>
+    </details>
+            </div>
+        
+        <button class="menu-btn" onclick="renderWorlds(); show('worlds')">🌍 自分の世界一覧</button>
+        <button class="menu-btn" style="background:#e3f2fd; border-color:#2196f3;" onclick="openOnlineWorldsPage()">🌐 皆の世界（オンライン共有）</button>
+        <button class="menu-btn" style="background:#fffde6; border-color:#e6db55;" onclick="openRandomPage('local_all')">🎲 所持世界からランダム国表示</button>
+
+        <div class="share-section">
+            <div class="share-title">📦 世界データの共有・読込 (JSON)</div>
+            <div class="share-btn-grid">
+                <button class="share-sub-btn" onclick="exportCurrentWorldData()">📤 データを共有<br><span style="font-size:10px; font-weight:normal;">(JSONで保存)</span></button>
+                <label class="share-sub-btn" style="cursor: pointer;">
+                    📥 データを開く<br><span style="font-size:10px; font-weight:normal;">(ファイルを読み込む)</span>
+                    <input type="file" id="importJsonInput" accept=".json" style="display:none;" onchange="handleFileSelect(event)">
+                </label>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div id="worlds" class="page">
+        <header>自分の世界一覧</header><br>
+        <div id="world-list-container"></div>
+        <button class="menu-btn" style="margin-top:20px;" onclick="openCreateWorldModal()">＋ 新しい世界を作成</button>
+        <button class="menu-btn" style="background:#ccc;" onclick="show('top')">＜ 戻る</button>
+    </div>
+
+    <div id="online-worlds" class="page">
+        <header>皆の世界（オンライン）</header><br>
+        
+        <div class="box-frame" style="background:#f0f8ff;">
+            <strong>🔑 プライベートモード検索</strong>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <input type="text" id="roomCodeInput" placeholder="ルームコードを入力" style="flex:1; padding:6px; border:2px solid #000; border-radius:6px; text-align:center;">
+                <button type="button" onclick="searchOnlinePrivateWorlds()" style="padding:6px 12px; font-weight:bold; cursor:pointer;">検索</button>
+            </div>
+        </div>
+
+        <button class="menu-btn" style="background:#fffde6; border-color:#e6db55;" onclick="openRandomPage('online_public')">🎲 皆の世界からランダム国</button>
+        <button class="menu-btn" style="background:#fffde6; border-color:#e6db55;" onclick="promptPrivateRandom()">🎲 限定公開からランダム国</button>
+
+        <div id="online-world-list-container"></div>
+        <button class="menu-btn" style="background:#ccc;" onclick="show('top')">＜ 戻る</button>
+    </div>
+
+    <div id="view-continents" class="page">
+        <header id="view-continents-title">閲覧＜世界の名前</header><br>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h2 id="view-world-title" style="margin:0;"></h2>
+            <button type="button" id="delete-world-btn" onclick="deleteCurrentWorldFromView()" style="background:#e53935; color:white; border:none; border-radius:4px; padding:4px 8px; font-size:12px; cursor:pointer;">🗑️ この世界を削除</button>
+        </div>
+        
+        <div class="box" style="background: #fcfcfc;">
+            <div style="font-size: 12px; font-weight: bold; color: #555; margin-bottom: 5px;">世界の説明</div>
+            <p id="view-world-description" style="font-size: 13px; line-height: 1.4; margin: 0; white-space: pre-wrap; word-break: break-all; color: #333;">（説明はありません）</p>
+        </div>
+
+        <div id="view-continents-buttons-container"></div><br>
+        <button class="menu-btn" style="background:#fffde6; border-color:#e6db55;" onclick="openRandomPage('local_current')">🎲 この世界からランダム国表示</button>
+        <button class="menu-btn" style="background:#ccc;" id="view-continents-back-btn" onclick="renderWorlds(); show('worlds')">＜ 戻る</button>
+    </div>
+
+    <div id="edit-continents" class="page">
+        <div class="edit-header-area">
+            <header id="edit-continents-title" style="border-bottom:none; padding:0; text-align:left; flex:1;">編集＜世界の名前</header>
+        </div><br>
+
+        <div class="world-setting-box">
+            <div class="world-setting-title">
+                <span>⚙️ 世界の設定</span>
+                <button type="button" onclick="saveWorldSettings()" style="font-size:11px; padding:3px 10px; cursor:pointer; font-weight:bold;">設定を保存</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <div>
+                    <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">世界名</label>
+                    <input type="text" id="edit-world-name-input" maxlength="15" placeholder="世界の名前" style="width:100%; padding:6px; border:2px solid #000; border-radius:6px; box-sizing:border-box; font-size:12px;">
+                </div>
+<div>
+    <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">
+        編集パスワード 
+        <span id="passStatusLabel" style="font-weight:normal; margin-left:8px;"></span>
+    </label>
+    <input type="password" id="edit-world-password-input" placeholder="新しいパスワード（変更時のみ入力）" style="width:100%; padding:6px; border:2px solid #000; border-radius:6px; box-sizing:border-box; font-size:12px;">
+    <label style="font-size:10px; color:#555; cursor:pointer; display:block; margin-top:4px;">
+        <input type="checkbox" id="edit-world-clear-password"> パスワード解除
+    </label>
+</div>
+            </div>
+        </div>
+
+        <div class="world-setting-box" style="background:#e8f5e9; border-color:#4caf50;">
+            <div class="world-setting-title">
+                <span>🌐 「皆の世界」へオンライン共有</span>
+                <button type="button" onclick="uploadWorldToFirebase()" style="font-size:11px; padding:3px 10px; cursor:pointer; font-weight:bold; background:#4caf50; color:#fff; border:none; border-radius:4px;">オンライン公開/更新</button>
+            </div>
+    <div id="currentStatusLabel" style="font-weight:bold; font-size:12px; color:#2e7d32; margin-bottom:8px;">現在：--</div>
+
+    <div style="display:flex; flex-direction:column; gap:8px;">
+        <label style="font-size:11px; font-weight:bold; cursor:pointer;">
+        <input type="checkbox" id="publicCheckbox" checked onchange="updateStatusDisplay()"> 皆の世界（全体公開）にリスト表示する
+        </label>
+        <div>
+            <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:2px;">ルームコード</label>
+            <input type="text" id="edit-world-room-code" placeholder="指定のルームコードを知っている人のみ閲覧可能" style="width:100%; padding:6px; border:2px solid #000; border-radius:6px; box-sizing:border-box; font-size:12px;" oninput="updateStatusDisplay()">
+        </div>
+    </div>
+    <div style="font-size:10px; color:#555; margin-top:6px;">※全体公開チェックを外し、ルームコードを入力するとプライベートモードで共有されます。</div>
+</div>
+
+        <div class="world-setting-box">
+            <div class="world-setting-title">
+                <span>世界の説明</span>
+                <span id="counter-world-desc" class="char-counter" style="margin:0;">残り 200</span>
+            </div>
+            <textarea id="edit-world-description-input" maxlength="200" rows="3" placeholder="この世界全体の説明を入力" oninput="syncCounter('edit-world-description-input', 'counter-world-desc', 200)"></textarea>
+            <div style="text-align:right; margin-top:5px;">
+                <button type="button" onclick="saveWorldDescription()" style="font-size:11px; padding:3px 10px; cursor:pointer; font-weight:bold;">説明を保存</button>
+            </div>
+        </div>
+
+        <div id="edit-continents-buttons-container"></div><br>
+        <button class="menu-btn" style="background:#ccc;" onclick="renderWorlds(); show('worlds')">＜ 戻る</button>
+    </div>
+
+    <div id="view-countries" class="page">
+        <header id="view-countries-title">閲覧＜地域名</header><br>
+        <div id="view-regions-container"></div><br>
+        <button class="menu-btn" style="background:#ccc;" onclick="show('view-continents')">＜ 戻る</button>
+    </div>
+
+    <div id="edit-countries" class="page">
+        <header id="edit-countries-title">編集＜地域名</header><br>
+        <div class="box" style="border: 2px solid #000; text-align: center; background: #fdfdfd;">
+            <strong style="font-size:14px;">国の自由追加</strong>
+            <div id="free-country-slots-container" style="display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-top: 10px;"></div>
+        </div><br>
+        <div class="box" style="border: 2px solid #000;">
+            <strong style="font-size:15px;">🌐 プリセット国の一覧・編集</strong>
+            <div id="edit-regions-container" style="margin-top: 10px;"></div>
+        </div><br>
+        <button class="menu-btn" style="background:#ccc;" onclick="show('edit-continents')">＜ 戻る</button>
+    </div>
+</div>
+
+<div id="country-detail" class="page fixed-dashboard-layout">
+    <header id="detail-country-title" style="border-bottom: 2px solid #000; margin: 0; padding: 6px 0;">〇国</header>
+    
+    <div class="dashboard-main-grid">
+        <div class="row-grid-1">
+            <div id="d-img-slot-0" class="single-image-wrapper"><div class="dummy-txt">image 1</div></div>
+            <div id="d-img-slot-1" class="single-image-wrapper"><div class="dummy-txt">image 2</div></div>
+            <div class="scroll-box">
+                <strong id="detail-title-info">基本情報</strong>
+                <p id="detail-info" style="white-space: pre-wrap; margin: 4px 0 0 0; font-size: 13px; line-height: 1.4;"></p>
+            </div>
+        </div>
+        
+        <div class="row-grid-2">
+            <div class="sub-vertical-image-grid">
+                <div id="d-img-slot-2" class="single-image-wrapper"><div class="dummy-txt">image 3</div></div>
+                <div id="d-img-slot-3" class="single-image-wrapper"><div class="dummy-txt">image 4</div></div>
+            </div>
+            <div class="scroll-box">
+                <strong id="detail-title-history">歴史</strong>
+                <p id="detail-history" style="white-space: pre-wrap; margin: 4px 0 0 0; font-size: 13px; line-height: 1.4;"></p>
+            </div>
+            <div class="scroll-box">
+                <strong>他国との関係表</strong>
+                <div id="detail-relations-container" style="margin-top:4px; font-size:13px; line-height:1.4;"></div>
+            </div>
+        </div>
+
+        <div class="row-grid-3">
+            <div class="scroll-box">
+                <strong id="detail-title-notes">備考欄</strong>
+                <p id="detail-notes" style="white-space: pre-wrap; margin: 4px 0 0 0; font-size: 13px; line-height: 1.4;"></p>
+            </div>
+            <div class="sub-horizontal-image-grid">
+                <div id="d-img-slot-4" class="single-image-wrapper"><div class="dummy-txt">image 5</div></div>
+                <div id="d-img-slot-5" class="single-image-wrapper"><div class="dummy-txt">image 6</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-footer">
+        <button class="menu-btn" style="background:#ccc;" id="detail-back-btn">＜ 戻る</button>
+    </div>
+</div>
+
+<div id="country-form" class="page fixed-dashboard-layout">
+    <header id="form-country-title" style="border-bottom: 2px solid #000; margin: 0; padding: 6px 0;">〇国（編集）</header>
+    
+    <div class="dashboard-main-grid">
+        <div id="form-custom-name-area" style="display: none; flex: 1; margin-left: 5px;">
+            <input type="text" id="form-custom-name" placeholder="国名" maxlength="20" style="width: 100%; padding: 2px 4px; border: 2px solid #000; border-radius: 6px; font-size: 11px;">
+        </div>
+        <div class="row-grid-1">
+            <div id="f-img-slot-0" class="single-image-wrapper" onclick="triggerFormFileSlot(0)"></div>
+            <div id="f-img-slot-1" class="single-image-wrapper" onclick="triggerFormFileSlot(1)"></div>
+            <div class="scroll-box">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <input type="text" id="form-title-info" placeholder="基本情報" maxlength="15" style="font-weight:bold; border:none; border-bottom:1px solid #ccc; width:100px; font-size:12px; padding:2px;">
+                    <div class="char-counter" id="counter-info" style="margin:0;">残り 1500</div>
+                </div>
+                <div style="flex:1; margin-top:4px; min-height:0;">
+                    <textarea id="form-info" maxlength="1500" placeholder="文字を入力してください" oninput="syncCounter('form-info', 'counter-info', 1500)"></textarea>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row-grid-2">
+            <div class="sub-vertical-image-grid">
+                <div id="f-img-slot-2" class="single-image-wrapper" onclick="triggerFormFileSlot(2)"></div>
+                <div id="f-img-slot-3" class="single-image-wrapper" onclick="triggerFormFileSlot(3)"></div>
+            </div>
+            <div class="scroll-box">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <input type="text" id="form-title-history" placeholder="歴史" maxlength="15" style="font-weight:bold; border:none; border-bottom:1px solid #ccc; width:100px; font-size:12px; padding:2px;">
+                    <div class="char-counter" id="counter-history" style="margin:0;">残り 1500</div>
+                </div>
+                <div style="flex:1; margin-top:4px; min-height:0;">
+                    <textarea id="form-history" maxlength="1500" placeholder="文字を入力してください" oninput="syncCounter('form-history', 'counter-history', 1500)"></textarea>
+                </div>
+            </div>
+            <div class="scroll-box">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #ccc; padding-bottom:2px;">
+                    <strong>他国との関係</strong>
+                    <button type="button" onclick="addRelationRow('', '')" style="padding:1px 5px; font-size:11px; cursor:pointer;">＋追加</button>
+                </div>
+                <div id="form-relations-list" style="margin-top:4px; overflow-y:auto; flex:1;"></div>
+            </div>
+        </div>
+
+        <div class="row-grid-3">
+            <div class="scroll-box">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <input type="text" id="form-title-notes" placeholder="備考欄" maxlength="15" style="font-weight:bold; border:none; border-bottom:1px solid #ccc; width:100px; font-size:12px; padding:2px;">
+                    <div class="char-counter" id="counter-notes" style="margin:0;">残り 1500</div>
+                </div>
+                <div style="flex:1; margin-top:2px; min-height:0;">
+                    <textarea id="form-notes" maxlength="1500" placeholder="文字を入力してください" oninput="syncCounter('form-notes', 'counter-notes', 1500)"></textarea>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: stretch; width: 100%; height: 100%;">
+                <div class="sub-horizontal-image-grid" style="flex: 1;">
+                    <div id="f-img-slot-4" class="single-image-wrapper" onclick="triggerFormFileSlot(4)"></div>
+                    <div id="f-img-slot-5" class="single-image-wrapper" onclick="triggerFormFileSlot(5)"></div>
+                </div>
+
+                <div class="area-settings">
+                    <label style="display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; font-weight: bold; cursor: pointer; writing-mode: vertical-rl; text-orientation: upright; white-space: nowrap;">
+                        <input type="checkbox" id="form-is-public" style="margin: 0; cursor: pointer;">公開
+                    </label>
+                    <label style="display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; font-weight: bold; cursor: pointer; writing-mode: vertical-rl; text-orientation: upright; white-space: nowrap;">
+                        <input type="checkbox" id="form-is-random" style="margin: 0; cursor: pointer;">ランダム対象
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="dashboard-hidden-file-input" accept=".jpg,.jpeg,.png,.webp" style="display:none;" onchange="handleDashboardFileChange(event)">
+
+    <div class="dashboard-footer">
+        <button class="menu-btn" style="color:green; border-color:green;" onclick="saveCountryData()">保存</button>
+        <button class="menu-btn" style="color:red; border-color:red; background:#fff5f5;" onclick="deleteCountryData()">🗑️ 削除</button>
+        <button class="menu-btn" style="background:#ccc;" onclick="show('edit-countries')">戻る</button>
+    </div>
+</div>
+
+<div id="lightboxOverlay" class="lightbox-overlay" onclick="closeLightbox()">
+    <div class="lightbox-content-wrap" onclick="event.stopPropagation()">
+        <button class="lightbox-close-btn" onclick="closeLightbox()">✕</button>
+        <img id="lightboxImg" class="lightbox-img" src="" alt="拡大画像">
+        <div id="lightboxCaption" class="lightbox-caption"></div>
+    </div>
+</div>
+
+<div id="create-world-modal" class="modal-overlay">
+    <div class="modal-box">
+        <h3 style="margin-top:0;">新しい世界を作る</h3>
+        <input type="text" id="newWorldName" placeholder="世界名" maxlength="15">
+        <div class="modal-flex">
+            <button class="modal-btn" onclick="closeModal('create-world-modal')">キャンセル</button>
+            <button class="modal-btn" onclick="createNewWorld()">作成</button>
+        </div>
+    </div>
+</div>
+
+<div id="password-auth-modal" class="modal-overlay">
+    <div class="modal-box">
+        <h3 style="margin-top:0;">🔑 パスワード認証</h3>
+        <p style="font-size:12px; color:#555; margin-bottom:5px;">この世界を編集するにはパスワードが必要です。</p>
+        <input type="password" id="authPasswordInput" placeholder="パスワードを入力">
+        <div class="modal-flex">
+            <button class="modal-btn" onclick="closeModal('password-auth-modal')">キャンセル</button>
+            <button class="modal-btn" style="color:green;" onclick="confirmPasswordAuth()">認証</button>
+        </div>
+    </div>
+</div>
+
+<div id="import-world-modal" class="modal-overlay">
+    <div class="modal-box">
+        <h3 style="margin-top:0;">データを読み込む</h3>
+        <p style="font-size:12px; color:#555; text-align:left; margin-bottom:5px;">
+            同名ファイルとの混同を防ぐため、世界名の変更を推奨します。
+        </p>
+        <input type="text" id="importWorldNameInput" placeholder="世界名を入力" maxlength="15">
+        <div class="modal-flex">
+            <button class="modal-btn" onclick="closeModal('import-world-modal')">キャンセル</button>
+            <button class="modal-btn" style="color:green;" onclick="confirmImportWorld()">追加する</button>
+        </div>
+    </div>
+</div>
+
+<!-- Firebase SDK Module -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, getDoc, query, where, doc, setDoc, deleteDoc, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyBHrFy7iFg1RLCKDMtcGABP2Ocz1VOQtrs",
+    authDomain: "national-creative-support-site.firebaseapp.com",
+    projectId: "national-creative-support-site",
+    storageBucket: "national-creative-support-site.firebasestorage.app",
+    messagingSenderId: "704148708059",
+    appId: "1:704148708059:web:0c0f559118259cd5448afe"
+  };
+
+    const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+
+  
+  const worldCollection = collection(db, "online_worlds");
+window.auth = getAuth(app);
+const auth = window.auth;
+
+
+
+window.touchWorldActivity = async function(worldId, isPublicWorld = true) {
+  if (!worldId) return;
+  try {
+    const colName = isPublicWorld ? "online_worlds" : "private_world_metadata";
+    const ref = doc(db, colName, worldId);
+    await setDoc(ref, {
+      lastActiveAt: serverTimestamp()
+    }, { merge: true });
+  } catch (err) {
+    console.error("閲覧日時の更新失敗:", err);
+  }
+};
+
+    async function trackAndLogDeletedImages(world, countryKey, deletedImageUrls) {
+    if (typeof logDeletedImagesToFirebase === 'function') {
+        return await logDeletedImagesToFirebase(world, countryKey, deletedImageUrls);
+    }
+}
+
+window.logDeletedImagesToFirebase = async function(imagesToLog, defaultFlag = 'unknown') {
+    if (!imagesToLog || !Array.isArray(imagesToLog) || imagesToLog.length === 0) return;
+    
+    const currentUser = await ensureAuthenticatedUser();
+    if (!currentUser) return;
+    
+    try {
+        const batch = writeBatch(db);
+        const deletedImagesCol = collection(db, 'deleted_image_logs');
+
+        let count = 0;
+        imagesToLog.forEach(img => {
+            if (!img) return;
+            const url = typeof img === 'object' ? img.url : img;
+            const publicId = typeof img === 'object' ? (img.publicId || null) : null;
+            const id = publicId || url;
+
+            if (typeof url === 'string' && url.trim() !== '') {
+                const newDocRef = doc(deletedImagesCol);
+                batch.set(newDocRef, {
+                    imageId: id || '',
+                    publicId: publicId, 
+                    url: url || '',
+                    deletedBy: currentUser.uid,
+                    deletedAt: serverTimestamp(),
+                    countryFlag: (typeof img === 'object' && img.flag) ? img.flag : (defaultFlag || 'unknown')
+                });
+                count++;
+            }
+        });
+
+        if (count > 0) {
+            await batch.commit();
+        }
+    } catch (err) {
+        console.error("削除ログの保存失敗:", err);
+    }
+};
+
+window.ensureAuthenticatedUser = async function ensureAuthenticatedUser() {
+  if (auth.currentUser) {
+    return auth.currentUser;
+  }
+  return new Promise((resolve, reject) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      unsubscribe();
+      if (user) {
+        resolve(user);
+      } else {
+        try {
+          const userCredential = await signInAnonymously(auth);
+          resolve(userCredential.user);
+        } catch (err) {
+          console.error("匿名ログイン失敗:", err);
+          reject(err);
+        }
+      }
+    });
+  });
+};
+const ensureAuthenticatedUser = window.ensureAuthenticatedUser;
+
+let authReadyPromise = null;
+authReadyPromise = new Promise((resolve) => {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      try {
+        const userCredential = await signInAnonymously(auth);
+        console.log("匿名ログイン完了 UID:", userCredential.user.uid);
+        resolve(userCredential.user);
+      } catch (err) {
+        console.error("匿名ログイン失敗:", err);
+        resolve(null);
+      }
+    } else {
+      console.log("認証完了 UID:", user.uid);
+      resolve(user);
+    }
+  });
+});
+
+
+const CLOUDINARY_CLOUD_NAME = "yhydcrtk";
+const CLOUDINARY_UPLOAD_PRESET = "world_app_preset";
+    
+window.uploadToCloudinary = async function(blobData) {
+  const formData = new FormData();
+  formData.append("file", blobData, "compressed.webp");
+  formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+    method: "POST",
+    body: formData
+  });
+
+  if (!res.ok) throw new Error("アップロード失敗");
+  const data = await res.json();
+  
+  return {
+    url: data.secure_url,
+    publicId: data.public_id,
+    deleteToken: data.delete_token
+  };
+};
+
+function getChunkByteSize(data) {
+  return new Blob([JSON.stringify(data)]).size;
+}
+
+function getFirebaseParentRef(world) {
+  if (!world || !world.id) return null;
+  const roomCode = (world.roomCode || "").trim();
+  if (world.isOnlinePublic) {
+    return doc(db, "online_worlds", world.id);
+  } else if (roomCode !== "") {
+    return doc(db, "rooms", roomCode, "worlds", world.id);
+  }
+  return null;
+}
+
+async function findChunkIdForCountry(parentRef, countryKey) {
+  try {
+    const chunksRef = collection(parentRef, "country_chunks");
+    const snap = await getDocs(chunksRef);
+    let foundChunkId = null;
+
+    snap.forEach((docSnap) => {
+      const data = docSnap.data();
+      if (data && data.countries && data.countries[countryKey]) {
+        foundChunkId = docSnap.id;
+      }
+    });
+
+    return foundChunkId;
+  } catch (err) {
+    console.error("チャンク検索に失敗:", err);
+    return null;
+  }
+}
+
+async function deleteAllCountryChunks(parentRef) {
+  const chunksRef = collection(parentRef, "country_chunks");
+  const snap = await getDocs(chunksRef);
+
+  if (snap.empty) return;
+
+  const docs = snap.docs;
+  const chunkSize = 400;
+
+  for (let i = 0; i < docs.length; i += chunkSize) {
+    const batch = writeBatch(db);
+    const chunkDocs = docs.slice(i, i + chunkSize);
+    chunkDocs.forEach((d) => {
+      batch.delete(d.ref);
+    });
+    await batch.commit(); 
+  }
+}
+
+async function saveWorldChunks(parentRef, worldData) {
+  if (!worldData._chunkMap) worldData._chunkMap = {};
+  if (!worldData.countries) worldData.countries = {};
+
+  const MAX_CHUNK_BYTES = 450 * 1024;
+  const chunksMap = {}; // { chunkId: { flag1: data1, flag2: data2 } }
+
+  Object.keys(worldData.countries).forEach((flagKey) => {
+    const countryData = worldData.countries[flagKey];
+    let assignedChunkId = worldData._chunkMap[flagKey];
+
+    if (assignedChunkId) {
+      const currentChunk = chunksMap[assignedChunkId] || {};
+      const testChunk = { ...currentChunk, [flagKey]: countryData };
+      if (getChunkByteSize({ countries: testChunk }) <= MAX_CHUNK_BYTES) {
+        chunksMap[assignedChunkId] = testChunk;
+        return;
+      }
+    }
+
+    let foundChunkId = null;
+    for (const [cId, cCountries] of Object.entries(chunksMap)) {
+      const testChunk = { ...cCountries, [flagKey]: countryData };
+      if (getChunkByteSize({ countries: testChunk }) <= MAX_CHUNK_BYTES) {
+        foundChunkId = cId;
+        chunksMap[cId] = testChunk;
+        break;
+      }
+    }
+
+    if (!foundChunkId) {
+      foundChunkId = `chunk_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      chunksMap[foundChunkId] = { [flagKey]: countryData };
+    }
+
+    worldData._chunkMap[flagKey] = foundChunkId;
+  });
+
+  const chunksRef = collection(parentRef, "country_chunks");
+  const existingSnap = await getDocs(chunksRef);
+  const existingChunkIds = new Set();
+  existingSnap.forEach((d) => existingChunkIds.add(d.id));
+
+  const savePromises = [];
+  for (const [chunkId, countriesObj] of Object.entries(chunksMap)) {
+    const chunkDocRef = doc(chunksRef, chunkId);
+    savePromises.push(setDoc(chunkDocRef, { countries: countriesObj }));
+    existingChunkIds.delete(chunkId);
+  }
+
+  existingChunkIds.forEach((oldChunkId) => {
+    savePromises.push(deleteDoc(doc(chunksRef, oldChunkId)));
+  });
+
+  await Promise.all(savePromises);
+}
+
+window.syncSingleCountryToFirebase = async function(world, countryKey) {
+  const parentRef = getFirebaseParentRef(world);
+  if (!parentRef) return; 
+
+  if (!world._chunkMap) world._chunkMap = {};
+  const countryData = world.countries ? world.countries[countryKey] : null;
+  if (!countryData) return;
+
+  let chunkId = world._chunkMap[countryKey];
+  if (!chunkId) {
+    chunkId = await findChunkIdForCountry(parentRef, countryKey);
+  }
+
+  const chunksRef = collection(parentRef, "country_chunks");
+  const MAX_CHUNK_BYTES = 450 * 1024; 
+
+  if (chunkId) {
+    const targetChunkRef = doc(chunksRef, chunkId);
+    const chunkSnap = await getDoc(targetChunkRef);
+    let chunkData = (chunkSnap.exists() && chunkSnap.data().countries) ? chunkSnap.data().countries : {};
+
+    const updatedChunk = { ...chunkData, [countryKey]: countryData };
+    if (getChunkByteSize({ countries: updatedChunk }) <= MAX_CHUNK_BYTES) {
+      await setDoc(targetChunkRef, { countries: updatedChunk });
+      world._chunkMap[countryKey] = chunkId;
+      return;
+    } else {   
+      delete chunkData[countryKey];
+      if (Object.keys(chunkData).length === 0) {
+        await deleteDoc(targetChunkRef);
+      } else {
+        await setDoc(targetChunkRef, { countries: chunkData });
+      }
+      const newChunkId = `chunk_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      const newChunkRef = doc(chunksRef, newChunkId);
+      await setDoc(newChunkRef, { countries: { [countryKey]: countryData } });
+      world._chunkMap[countryKey] = newChunkId;
+      return;
+    }
+  } else {
+    const newChunkId = `chunk_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    const newChunkRef = doc(chunksRef, newChunkId);
+    await setDoc(newChunkRef, { countries: { [countryKey]: countryData } });
+    world._chunkMap[countryKey] = newChunkId;
+  }
+};
+
+window.deleteSingleCountryFromFirebase = async function(world, countryKey) {
+  const parentRef = getFirebaseParentRef(world);
+  if (!parentRef) return;
+
+  if (!world._chunkMap) world._chunkMap = {};
+  let chunkId = world._chunkMap[countryKey];
+  if (!chunkId) {
+    chunkId = await findChunkIdForCountry(parentRef, countryKey);
+  }
+
+  if (chunkId) {
+    const chunksRef = collection(parentRef, "country_chunks");
+    const targetChunkRef = doc(chunksRef, chunkId);
+    const chunkSnap = await getDoc(targetChunkRef);
+
+    if (chunkSnap.exists()) {
+      const chunkData = chunkSnap.data().countries || {};
+      delete chunkData[countryKey];
+
+      if (Object.keys(chunkData).length === 0) {
+        await deleteDoc(targetChunkRef); 
+      } else {
+        await setDoc(targetChunkRef, { countries: chunkData });
+      }
+    }
+  }
+
+  delete world._chunkMap[countryKey];
+};
+
+window.uploadWorldToFirebase = async function() {
+  if (window.currentWorldIndex === null || !window.worldsData[window.currentWorldIndex]) return;
+
+  const currentUser = await ensureAuthenticatedUser();
+  if (!currentUser) {
+    alert("❌ 認証失敗。ページをリロードして再度お試しください。");
+    return;
+  }
+
+  const world = window.worldsData[window.currentWorldIndex];
+  const oldRoomCode = world._originalRoomCode || world.roomCode || '';
+
+  const worldName = document.getElementById('edit-world-name-input').value.trim();
+  const worldDesc = document.getElementById('edit-world-description-input').value.trim();
+  const newRoomCode = String(document.getElementById('edit-world-room-code').value).trim();
+  const isOnlinePublic = document.getElementById('publicCheckbox').checked;
+
+  const totalPublic = typeof getTotalPublicCountries === 'function' ? getTotalPublicCountries(world) : 0;
+    
+  if (totalPublic === 0 && (isOnlinePublic || newRoomCode !== "")) {
+    alert("❌ 公開国が0件の世界は、公開に設定できません。\n1つ以上の国を「公開」に設定してください。");
+    return;
+  }
+
+  if (!worldName) {
+    alert("世界名を入力してください。");
+    return;
+  }
+
+  world.name = worldName;
+  world.description = worldDesc;
+  world.isOnlinePublic = isOnlinePublic;
+  world.roomCode = newRoomCode;
+  world.ownerId = currentUser.uid;
+
+  const docId = world.id || `world_${Date.now()}`;
+  world.id = docId;
+
+  const metadataPayload = {
+    id: docId,
+    name: worldName,
+    description: worldDesc,
+    isOnlinePublic: isOnlinePublic,
+    roomCode: newRoomCode,
+    ownerId: currentUser.uid, 
+    updatedAt: serverTimestamp(),
+    schemaVersion: 2
+  };
+
+  try {
+    const publicRef = doc(db, "online_worlds", docId);
+    const oldRoomRef = oldRoomCode ? doc(db, "rooms", oldRoomCode, "worlds", docId) : null;
+    const currentRoomRef = newRoomCode ? doc(db, "rooms", newRoomCode, "worlds", docId) : null;
+
+    if (oldRoomCode && oldRoomCode !== newRoomCode && oldRoomRef) {
+      await deleteAllCountryChunks(oldRoomRef);
+      await deleteDoc(oldRoomRef).catch(() => {});
+    }
+
+    if (isOnlinePublic) {
+      if (currentRoomRef && newRoomCode) {
+        await deleteAllCountryChunks(currentRoomRef);
+        await deleteDoc(currentRoomRef).catch(() => {});
+      }
+      await setDoc(publicRef, metadataPayload);
+      await saveWorldChunks(publicRef, world);
+    } else if (newRoomCode !== "") {
+      await deleteAllCountryChunks(publicRef);
+      await deleteDoc(publicRef).catch(() => {});
+      await setDoc(currentRoomRef, metadataPayload);
+      await saveWorldChunks(currentRoomRef, world);
+    } else {
+      await deleteAllCountryChunks(publicRef);
+      await deleteDoc(publicRef).catch(() => {});
+      if (oldRoomRef) {
+        await deleteAllCountryChunks(oldRoomRef);
+        await deleteDoc(oldRoomRef).catch(() => {});
+      }
+      world._originalRoomCode = newRoomCode;
+      if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
+      alert("🔒 非公開設定のため、オンライン上から削除しました。");
+      return;
+    }
+
+    world._originalRoomCode = newRoomCode;
+    if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
+
+    if (typeof updateStatusDisplay === 'function') {
+      updateStatusDisplay(true);
+    }
+    alert("🌐 オンライン共有（更新）しました！");
+  } catch (err) {
+    console.error(err);
+    alert("❌ 送信失敗: " + err.message);
+  }
+};
+
+window.savePrivateWorldMetadata = async function(worldId, imagePaths, isPublic) {
+  const currentUser = await ensureAuthenticatedUser();
+  if (!currentUser) return;
+
+  const metadataRef = doc(db, "private_world_metadata", worldId);
+  await setDoc(metadataRef, {
+    ownerUid: currentUser.uid,
+    imagePaths: imagePaths || [],
+    lastActiveAt: serverTimestamp(),
+    isPublic: isPublic
+  }, { merge: true });
+};
+
+window.syncWorldToFirebaseIfOnline = async function(worldData) {
+  try {
+    const currentUser = await ensureAuthenticatedUser();
+    if (!currentUser) return;
+
+    if (!worldData.ownerId) {
+      worldData.ownerId = currentUser.uid;
+      saveToLocalStorage();
+    }
+
+    const cleanCode = worldData.roomCode ? String(worldData.roomCode).trim() : "";
+    const oldRoomCode = worldData._originalRoomCode ? String(worldData._originalRoomCode).trim() : "";
+
+    const metadataPayload = {
+      id: worldData.id,
+      name: worldData.name,
+      description: worldData.description || '',
+      isOnlinePublic: worldData.isOnlinePublic,
+      roomCode: cleanCode,
+      ownerId: worldData.ownerId,
+      updatedAt: serverTimestamp(),
+      schemaVersion: 2
+    };
+
+    const publicRef = doc(db, "online_worlds", worldData.id);
+    const oldRoomRef = oldRoomCode ? doc(db, "rooms", oldRoomCode, "worlds", worldData.id) : null;
+    const cleanRoomRef = cleanCode ? doc(db, "rooms", cleanCode, "worlds", worldData.id) : null;
+
+    if (oldRoomCode && oldRoomCode !== cleanCode && oldRoomRef) {
+      await deleteAllCountryChunks(oldRoomRef);
+      await deleteDoc(oldRoomRef).catch(() => {});
+    }
+
+    if (worldData.isOnlinePublic) {
+      if (cleanCode !== "" && cleanRoomRef) {
+        await deleteAllCountryChunks(cleanRoomRef);
+        await deleteDoc(cleanRoomRef).catch(() => {});
+      }
+      await setDoc(publicRef, metadataPayload, { merge: true });
+    } else if (cleanCode !== "") {
+      await deleteAllCountryChunks(publicRef);
+      await deleteDoc(publicRef).catch(() => {});
+      await setDoc(cleanRoomRef, metadataPayload, { merge: true });
+    } else {
+      await deleteAllCountryChunks(publicRef);
+      await deleteDoc(publicRef).catch(() => {});
+      if (oldRoomRef && oldRoomCode !== "") {
+        await deleteAllCountryChunks(oldRoomRef);
+        await deleteDoc(oldRoomRef).catch(() => {});
+      }
+    }
+
+    worldData._originalRoomCode = cleanCode;
+  } catch (err) {
+    console.error("ワールドメタデータ保存エラー:", err);
+  }
+};
+
+window.deleteWorldFromFirebase = async function(worldId, roomCode = "", oldRoomCode = "") {
+  if (!worldId) return;
+
+  try {
+    const cleanCode = roomCode ? String(roomCode).trim() : "";
+    const cleanOldCode = oldRoomCode ? String(oldRoomCode).trim() : "";
+
+    await deleteAllCountryChunks(
+      doc(db, "online_worlds", worldId)
+    );
+    await deleteDoc(
+      doc(db, "online_worlds", worldId)
+    ).catch(() => {});
+    
+    if (cleanCode !== "") {
+      const currentRoomRef = doc(db, "rooms", cleanCode, "worlds", worldId);
+      await deleteAllCountryChunks(currentRoomRef);
+      await deleteDoc(currentRoomRef).catch(() => {});
+    }
+
+    if (cleanOldCode !== "" && cleanOldCode !== cleanCode) {
+      const oldRoomRef = doc(db, "rooms", cleanOldCode, "worlds", worldId);
+      await deleteAllCountryChunks(oldRoomRef);
+      await deleteDoc(oldRoomRef).catch(() => {});
+    }
+
+  } catch (err) {
+    console.error("Firebaseからの削除失敗:", err);
+  }
+};
+
+async function fetchWorldWithChunks(worldDoc, parentPath = 'online_worlds') {
+  const worldData = worldDoc.data();
+  const chunksRef = collection(db, parentPath, worldDoc.id, 'country_chunks');
+  const chunksSnapshot = await getDocs(chunksRef);
+
+  const countries = {};
+  chunksSnapshot.forEach(chunkDoc => {
+    const chunkData = chunkDoc.data();
+    if (chunkData && chunkData.countries) {
+      Object.assign(countries, chunkData.countries);
+    }
+  });
+
+  return {
+    ...worldData,
+    id: worldDoc.id,
+    countries: countries
+  };
+}
+
+window.fetchOnlinePublicWorlds = async function() {
+  try {
+    const q = query(collection(db, 'online_worlds'), where('isOnlinePublic', '==', true));
+    const snapshot = await getDocs(q);
+    const worlds = await Promise.all(
+      snapshot.docs.map(docSnap => fetchWorldWithChunks(docSnap, 'online_worlds'))
+    );
+    return worlds;
+  } catch (error) {
+    console.error("Failed to fetch public worlds:", error);
+    return [];
+  }
+};
+
+window.fetchOnlinePrivateWorlds = async function(roomCode) {
+  if (!roomCode) return [];
+  try {
+    const roomsRef = collection(db, 'rooms', roomCode, 'worlds');
+    const snapshot = await getDocs(roomsRef);
+    if (snapshot.empty) return [];
+    const worlds = await Promise.all(
+      snapshot.docs.map(docSnap => fetchWorldWithChunks(docSnap, `rooms/${roomCode}/worlds`))
+    );
+    return worlds;
+  } catch (error) {
+    console.error("Failed to fetch private worlds:", error);
+    return [];
+  }
+};
+
+window.deleteFromCloudinary = async function(deleteToken) {
+  if (!deleteToken) return;
+  const formData = new FormData();
+  formData.append("token", deleteToken);
+
+  await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/delete_by_token`, {
+    method: "POST",
+    body: formData
+  });
+};
+    
+</script>
+
+<script>
+async function hashPassword(password, salt = 'world_canvas_salt_key') {
+    if (!password) return '';
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password + salt);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function escapeHTML(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function sanitizeUrl(url) {
+    if (!url) return '';
+    const str = String(url).trim();
+    if (/^(https?:\/\/|data:image\/(png|jpeg|jpg|webp);base64,)/i.test(str)) {
+        return str.replace(/["'<>]/g, '')
+    }
+    return '';
+}
+
+// convertUrlsToLinks の統一定義（HTMLエスケープ後にURLをリンク化）
+function convertUrlsToLinks(text) {
+  if (!text) return '';
+  const escapedText = escapeHTML(text);
+  const urlPattern = /(https?:\/\/[^\s<]+)/g;
+  return escapedText.replace(urlPattern, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+}
+    
+const worldPresetMap = {
+    'アジア': {
+        '東': ['🇰🇷', '🇹🇼', '🇨🇳', '🇰🇵', '🇯🇵', '🇭🇰', '🇲🇴', '🇲🇳'],
+        '東南': ['🇮🇩', '🇰🇭', '🇸🇬', '🇹🇭', '🇵🇰', '🇹🇱', '🇵🇭', '🇧🇳', '🇻🇳', '🇲🇾', '🇲🇲', '🇱🇦'],
+        '南': ['🇮🇳', '🇱🇰', '🇳🇵', '🇵🇰', '🇵🇸', '🇧🇩', '🇧🇹', '🇲🇻'], 
+        '中央': ['🇺🇿', '🇰🇿', '🇰🇬', '🇹🇯', '🇹🇲'],
+        '中東': ['🇦🇿', '🇦🇪', '🇦🇲', '🇾🇪', '🇮🇱', '🇮🇶', '🇮🇷', '🇴🇲', '🇶🇦', '🇨🇾', '🇰🇼', '🇸🇦', '🇬🇪', '🇸🇾', '🇹🇷', '🇧🇭', '🇯🇴', '🇱🇧']
+    },
+    'ヨーロッパ': {
+        '北': ['🇮🇸', '🇮🇪', '🇬🇧', '🏴󠁧󠁢󠁥󠁮󠁧󠁿', '🏴󠁧󠁢󠁷󠁬󠁳󠁿', '🇪🇪', '🇦🇽', '🇸🇪', '🏴󠁧󠁢󠁳󠁣󠁴󠁿', '🇩🇰', '🇳🇴', '🇫🇮', '🇫🇴', '🇱🇻', '🇱🇹'],
+        '西': ['🇦🇹', '🇳🇱', '🇨🇭', '🇩🇪', '🇫🇷', '🇧🇪', '🇲🇨', '🇱🇮', '🇱🇺'],
+        '南': ['🇦🇱', '🇦🇩', '🇮🇹', '🇲🇰', '🇬🇷', '🇭🇷', '🇽🇰', '🇸🇲', '🇬🇮', '🇪🇸', '🇸🇮', '🇷🇸', '🇻🇦', '🇧🇦', '🇵🇹', '🇲🇹', '🇲🇪'],
+        '東': ['🇺🇦', '🇸🇰', '🇨🇿', '🇭🇺', '🇧🇬', '🇧🇾', '🇵🇱', '🇲🇩', '🇷🇴', '🇷🇺']
+    },
+    'アフリカ': {
+        '北': ['🇩🇿', '🇪🇬', '🇮🇨', '🇹🇳', '🇪🇭', '🇲🇦', '🇱🇾'],
+        '西・中': ['🇦🇴', '🇬🇭', '🇨🇻', '🇬🇦', '🇨🇲', '🇬🇲', '🇬🇳', '🇬🇼', '🇨🇮', '🇨🇬', '🇨🇩', '🇸🇹', '🇸🇱', '🇬🇶', '🇸🇳', '🇹🇩', '🇨🇫', '🇹🇬', '🇳🇬', '🇳🇪', '🇧🇫', '🇧🇯', '🇲🇱', '🇲🇷', '🇱🇷'],
+        '東・南': ['🇺🇬', '🇸🇿', '🇪🇹', '🇪🇷', '🇰🇪', '🇰🇲', '🇿🇲', '🇩🇯', '🇿🇼', '🇸🇩', '🇸🇨', '🇸🇴', '🇹🇿', '🇳🇦', '🇧🇮', '🇧🇼', '🇲🇬', '🇲🇼', '🇿🇦', '🇸🇸', '🇲🇺', '🇲🇿', '🇷🇼', '🇱🇸', '🇷🇪']
+    },
+    'アメリカ大陸': {
+        '北・中': ['🇺🇸', '🇸🇻', '🇨🇦', '🇬🇱', '🇨🇺', '🇬🇹', '🇨🇷', '🇳🇮', '🇵🇦', '🇧🇸', '🇧🇲', '🇧🇿', '🇭🇳', '🇲🇽'],
+        'カリブ': ['🇦🇼', '🇦🇬', '🇻🇮', '🇦🇮', '🇻🇬', '🇨🇼', '🇬🇵', '🇬🇩', '🇰🇾', '🇯🇲', '🇸🇽', '🇰🇳', '🇻🇨', '🇱🇨', '🇩🇴', '🇩🇲', '🇹🇹', '🇭🇹','🇧🇧', '🇵🇷', '🇲🇶'],
+        '南': ['🇦🇷', '🇺🇾', '🇪🇨', '🇬🇾', '🇨🇴', '🇸🇷', '🇨🇱', '🇵🇾', '🇫🇰', '🇧🇷', '🇬🇫', '🇻🇪', '🇵🇪', '🇧🇴']
+    },
+    'オーストラリア': {
+        'オセアニア': ['🇦🇸', '🇦🇺', '🇲🇵', '🇰🇮', '🇬🇺', '🇨🇰', '🇼🇸', '🇸🇧', '🇵🇫', '🇹🇻', '🇹🇴', '🇳🇷', '🇦🇶', '🇳🇺', '🇳🇨', '🇳🇿', '🇻🇺', '🇵🇬', '🇵🇼', '🇫🇯', '🇲🇭', '🇫🇲']
+    },
+        '他': {
+        'IGO': ['NATO', 'EU', 'APEC', 'OECD', 'IEA', 'CSTO', 'AU', 'OPEC', 'ｱｾｱﾝ'],
+        'UNシステム': ['UN', 'IMF', 'ICJ', 'WMO', 'IAEA', 'WHO', 'WTO', 'ILO', 'UPU'],
+        'INGO': ['MSF', 'RSF', 'ICRC', 'IOC', 'HRW']
+    }
+};
+var worldsData = []; 
+var currentWorldIndex = null;
+let currentContinent = '';
+let currentFlag = '';
+let currentFormImages = []; 
+let activeSlotIndex = null;
+let tempImportedWorld = null;
+let currentViewSource = 'local'; // 'local' or 'online'
+let onlineWorldsData = [];
+
+function saveToLocalStorage() {
+    localStorage.setItem('worldSystem_worldsData', JSON.stringify(worldsData));
+}
+
+function loadFromLocalStorage() {
+    const w = localStorage.getItem('worldSystem_worldsData');
+    if (w) worldsData = JSON.parse(w);
+}
+
+function getFormattedDate() {
+    const now = new Date(); 
+    return `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+}
+
+/* 📤 データ共有（ダウンロード） */
+function exportCurrentWorldData() {
+    if (worldsData.length === 0) {
+        alert("⚠️ 共有できる世界データがありません。");
+        return;
+    }
+    const worldListNames = worldsData.map((w, i) => `${i + 1}: ${w.name}`).join("\n");
+    const selectedIdx = prompt(`エクスポートしたい世界の番号を入力してください:\n\n${worldListNames}`, "1");
+    if (!selectedIdx) return;
+    
+    const idx = parseInt(selectedIdx, 10) - 1;
+    if (isNaN(idx) || !worldsData[idx]) {
+        alert("❌ 無効な番号です。");
+        return;
+    }
+    const targetWorld = JSON.parse(JSON.stringify(worldsData[idx]));
+    delete targetWorld.password;
+    const blob = new Blob([JSON.stringify(targetWorld, null, 2)], { type: "application/json;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `世界データ_${targetWorld.name}_${Date.now()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+/* 📥 データを開く（ファイル選択時） */
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const parsed = JSON.parse(e.target.result);
+            if (!parsed || !parsed.name || !parsed.countries) {
+                throw new Error("正しい世界データ(JSON)ではありません。");
+            }
+            tempImportedWorld = parsed;
+            document.getElementById('importWorldNameInput').value = `${parsed.name} (共有データ)`;
+            openModal('import-world-modal');
+        } catch (err) {
+            alert(`❌ 読み込み失敗: ${err.message}`);
+        }
+        event.target.value = '';
+    };
+    reader.readAsText(file, "UTF-8");
+}
+
+async function confirmImportWorld() {
+    if (!tempImportedWorld) return;
+    const newName = document.getElementById('importWorldNameInput').value.trim();
+    if (!newName) {
+        alert("世界名を入力してください。");
+        return;
+    }
+
+    const uniqueId = `world_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    tempImportedWorld.id = uniqueId;
+    tempImportedWorld.name = newName;
+    tempImportedWorld.updatedAt = getFormattedDate();
+    tempImportedWorld.password = '';
+
+    const user = await window.ensureAuthenticatedUser();
+    tempImportedWorld.ownerId = user ? user.uid : '';
+    
+    worldsData.push(tempImportedWorld);
+    saveToLocalStorage();
+    closeModal('import-world-modal');
+    tempImportedWorld = null;
+    
+    renderWorlds();
+    alert("📥 世界データを読み込んで保存しました！");
+    show('worlds');
+}
+
+async function createNewWorld() {
+    const n = document.getElementById('newWorldName').value.trim(); 
+    if(!n) { alert('名前を入力してください！'); return; }
+
+    const user = await window.ensureAuthenticatedUser();
+    worldsData.push({ 
+        id: `world_${Date.now()}`, 
+        name: n, 
+        password: '', 
+        description: '', 
+        isOnlinePublic: false, 
+        roomCode: '', 
+        ownerId: user ? user.uid : '', 
+        countries: {}, 
+        updatedAt: getFormattedDate() 
+    });
+    saveToLocalStorage(); 
+    closeModal('create-world-modal'); 
+    renderWorlds();
+}
+
+function syncCounter(textareaId, counterId, maxLen) {
+    const ta = document.getElementById(textareaId);
+    const counter = document.getElementById(counterId);
+    if (ta && counter) {
+        const remaining = maxLen - ta.value.length;
+        counter.innerText = `残り ${remaining}`;
+        if (remaining <= 0) counter.style.color = 'red';
+        else if (remaining <= 30) counter.style.color = 'orange';
+        else counter.style.color = '#666';
+    }
+}
+
+function openLightbox(imageSrc, captionText = '') {
+    if (!imageSrc || imageSrc.trim() === "") return;
+    const overlay = document.getElementById('lightboxOverlay');
+    const img = document.getElementById('lightboxImg');
+    const caption = document.getElementById('lightboxCaption');
+    img.src = imageSrc;
+    if (captionText) {
+        caption.innerText = captionText; caption.style.display = 'block';
+    } else {
+        caption.innerText = ''; caption.style.display = 'none';
+    }
+    overlay.classList.add('active');
+}
+
+function closeLightbox() {
+    document.getElementById('lightboxOverlay').classList.remove('active');
+    document.getElementById('lightboxImg').src = '';
+}
+
+function validateImageFile(file) {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+        alert(`❌ エラー: 「${file.name}」形式非対応。\nJPG, JPEG, PNG, WEBP形式のみ。`); return false;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+        alert(`❌ エラー: 容量超過。\n5MB以内の画像を選択してください。`); return false;
+    }
+    return true;
+}
+
+function show(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const target = document.getElementById(id);
+    if(target) target.classList.add('active');
+}
+
+function openModal(id) { const m = document.getElementById(id); if(m) m.classList.add('active'); }
+function closeModal(id) { const m = document.getElementById(id); if(m) m.classList.remove('active'); }
+function openCreateWorldModal() { document.getElementById('newWorldName').value = ''; openModal('create-world-modal'); }
+
+function countPublicCountriesInContinent(world, continentName) {
+    let count = 0; if (!world || !world.countries) return 0;
+    if (worldPresetMap[continentName]) {
+        Object.keys(worldPresetMap[continentName]).forEach(r => { worldPresetMap[continentName][r].forEach(f => { if (world.countries[f] && world.countries[f].isPublic) count++; }); });
+    }
+    for (let i = 1; i <= 10; i++) { if (world.countries[`${continentName}_custom_${i}`] && world.countries[`${continentName}_custom_${i}`].isPublic) count++; }
+    return count;
+}
+
+function getTotalPublicCountries(world) {
+    let totalPublic = 0;
+    if (!world) return 0;
+    Object.keys(worldPresetMap).forEach(c => {
+        totalPublic += countPublicCountriesInContinent(world, c);
+    });
+    return totalPublic;
+}
+
+function renderWorlds() {
+    const container = document.getElementById('world-list-container'); 
+    container.innerHTML = '';
+    if(worldsData.length === 0) { 
+        container.innerHTML = '<p style="text-align:center; color:#999; margin:20px 0;">世界がありません。</p>'; 
+        return; 
+    }
+    worldsData.forEach((w, idx) => {
+        let totalPublic = 0; 
+        Object.keys(worldPresetMap).forEach(c => { totalPublic += countPublicCountriesInContinent(w, c); });
+        const hasPass = w.password && w.password.trim() !== '';
+        const isPublic = w.isOnlinePublic !== false;
+        const roomCode = (w.roomCode || '').trim();
+        let statusText = '';
+        if (isPublic && !roomCode) {
+            statusText = '全体公開';
+        } else if (isPublic && roomCode) {
+            statusText = `全体・限定(${escapeHTML(roomCode)})`;
+        } else if (!isPublic && roomCode) {
+            statusText = `限定公開(${escapeHTML(roomCode)})`;
+        } else {
+            statusText = '非公開';
+        }
+
+        container.insertAdjacentHTML('beforeend', `
+            <div class="box flex-space">
+                <div>
+                    <strong>${escapeHTML(w.name)} ${hasPass ? '🔒' : ''}</strong>
+                    <div class="small-text" style="color: #444; font-weight: bold; margin-top: 3px;">
+                        設定：<span style="color:#2e7d32;">${statusText}</span> / 公開国：${totalPublic}
+                    </div>
+                </div>
+                <div>
+                    <button onclick="clickViewWorld(${idx}, 'local')">閲覧</button>
+                    <button onclick="requestEditWorld(${idx})">編集</button>
+                </div>
+            </div>
+        `);
+    });
+}
+
+/* オンライン世界の画面を開く */
+async function openOnlineWorldsPage() {
+    show('online-worlds');
+    const container = document.getElementById('online-world-list-container');
+    container.innerHTML = '<p style="text-align:center; color:#666;">読み込み中...</p>';
+    
+    onlineWorldsData = await window.fetchOnlinePublicWorlds();
+    renderOnlineWorlds(onlineWorldsData);
+}
+
+function renderOnlineWorlds(list) {
+    const container = document.getElementById('online-world-list-container');
+    container.innerHTML = '';
+    if (list.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#999; margin:20px 0;">該当する公開世界はありません。</p>';
+        return;
+    }
+    list.forEach((w, idx) => {
+        let totalPublic = 0; Object.keys(worldPresetMap).forEach(c => { totalPublic += countPublicCountriesInContinent(w, c); });
+        container.insertAdjacentHTML('beforeend', `
+            <div class="box flex-space">
+                <div>
+                    <strong>${escapeHTML(w.name)}</strong>
+                    <div class="small-text" style="color: green; font-weight: bold;">公開国：${totalPublic}</div>
+                </div>
+                <div>
+                    <button onclick="clickViewWorld(${idx}, 'online')">閲覧</button>
+                </div>
+            </div>
+        `);
+    });
+}
+
+async function searchOnlinePrivateWorlds() {
+    const code = document.getElementById('roomCodeInput').value.trim();
+    if (!code) {
+        alert("ルームコードを入力してください。");
+        return;
+    }
+    const container = document.getElementById('online-world-list-container');
+    container.innerHTML = '<p style="text-align:center; color:#666;">検索中...</p>';
+    onlineWorldsData = await window.fetchOnlinePrivateWorlds(code);
+    renderOnlineWorlds(onlineWorldsData);
+}
+
+function clickViewWorld(index, source = 'local') {
+    currentViewSource = source;
+    currentWorldIndex = index; 
+    const world = (source === 'local') ? worldsData[index] : onlineWorldsData[index];
+    if (world && world.id) {
+        window.touchWorldActivity(world.id, source === 'online');
+    }
+
+    document.getElementById('view-continents-title').innerText = `閲覧＜${world.name}`;
+    const viewWorldTitleElem = document.getElementById('view-world-title');
+    if (viewWorldTitleElem) viewWorldTitleElem.innerText = world.name;
+    
+    const deleteBtn = document.getElementById('delete-world-btn');
+    if (deleteBtn) deleteBtn.style.display = (source === 'local') ? 'inline-block' : 'none';
+
+    const backBtn = document.getElementById('view-continents-back-btn');
+    if (backBtn) {
+        backBtn.onclick = (source === 'local') ? () => { renderWorlds(); show('worlds'); } : () => { show('online-worlds'); };
+    }
+
+    const descElem = document.getElementById('view-world-description');
+    if (descElem) {
+        descElem.innerHTML = (world.description && world.description.trim() !== '') 
+            ? convertUrlsToLinks(world.description) 
+            : '（説明はありません）';
+    }
+
+    const container = document.getElementById('view-continents-buttons-container'); 
+    container.innerHTML = '';
+    let hasContent = false;
+    
+    Object.keys(worldPresetMap).forEach(c => {
+        if (countPublicCountriesInContinent(world, c) > 0) {
+            hasContent = true; 
+            container.insertAdjacentHTML('beforeend', `<button class="menu-btn" onclick="showCountriesList('${c}', false)">${c}</button>`);
+        }
+    });
+
+    if (!hasContent) {
+        container.innerHTML = '<p style="text-align:center; color:#999; margin:20px 0;">公開国がありません。</p>';
+    }
+
+    show('view-continents');
+
+}
+
+function requestEditWorld(index) {
+    currentWorldIndex = index; const world = worldsData[index];
+    if (world.password && world.password.trim() !== '') {
+        document.getElementById('authPasswordInput').value = '';
+        openModal('password-auth-modal');
+    } else {
+        openEditWorld(index);
+    }
+}
+
+async function confirmPasswordAuth() {
+    const inputPass = document.getElementById('authPasswordInput').value;
+    const world = worldsData[currentWorldIndex];
+    
+    const inputHash = await hashPassword(inputPass);
+
+    if (inputHash === world.password) {
+        closeModal('password-auth-modal');
+        openEditWorld(currentWorldIndex);
+    } else {
+        alert("❌ パスワードが違います。");
+    }
+}
+
+function updateStatusDisplay(isSavedState = false) {
+  const publicCheckbox = document.getElementById('publicCheckbox');
+  const roomCodeInput = document.getElementById('edit-world-room-code');
+  const statusLabel = document.getElementById('currentStatusLabel');
+
+  if (!publicCheckbox || !roomCodeInput || !statusLabel) return;
+
+  const isPublic = publicCheckbox.checked;
+  const roomCode = roomCodeInput.value.trim();
+
+  const world = worldsData[currentWorldIndex];
+  const totalPublic = getTotalPublicCountries(world);
+  let stateText = '';
+
+  if (totalPublic === 0 && (isPublic || roomCode)) {
+    stateText = "⚠️ 公開国が0件のため公開不可（非公開）";
+  } else if (isPublic && !roomCode) {
+    stateText = "全体公開";
+  } else if (isPublic && roomCode) {
+    stateText = `全体公開・限定公開（${roomCode}）`;
+  } else if (!isPublic && roomCode) {
+    stateText = `限定公開（${roomCode}）`;
+  } else {
+    stateText = "非公開（ローカル保存のみ）";
+  }
+
+  statusLabel.textContent = isSavedState 
+    ? `現在の設定：${stateText}` 
+    : `変更後の予定：${stateText} (未保存)`;
+}
+
+function openEditWorld(index) {
+    currentWorldIndex = index; 
+    const world = worldsData[index];
+    
+    world._originalRoomCode = world.roomCode || '';
+
+    document.getElementById('edit-continents-title').innerText = `編集＜${world.name}`;
+    document.getElementById('edit-world-name-input').value = world.name || '';
+    document.getElementById('edit-world-password-input').value = '';
+    document.getElementById('edit-world-description-input').value = world.description || '';
+
+    const totalPublic = getTotalPublicCountries(world);
+    const shouldBePublic = (totalPublic > 0) && (world.isOnlinePublic !== false);
+    document.getElementById('publicCheckbox').checked = shouldBePublic;
+    document.getElementById('edit-world-room-code').value = world.roomCode || '';
+
+    syncCounter('edit-world-description-input', 'counter-world-desc', 200);
+
+    updateStatusDisplay(true);
+
+    const container = document.getElementById('edit-continents-buttons-container'); 
+    container.innerHTML = '';
+    Object.keys(worldPresetMap).forEach(c => { 
+        container.insertAdjacentHTML('beforeend', `<button class="menu-btn" style="border-style:dashed;" onclick="showCountriesList('${c}', true)">${c}</button>`); 
+    });
+    show('edit-continents');
+
+    document.getElementById('edit-world-clear-password').checked = false;
+
+const passStatus = document.getElementById('passStatusLabel');
+if (passStatus) {
+    if (world.password && world.password.trim() !== '') {
+        passStatus.innerHTML = `<span style="color:green; font-weight:bold;">🔒 設定あり</span>`;
+    } else {
+        passStatus.innerHTML = `<span style="color:#888;">🔓 未設定</span>`;
+    }
+}
+}
+
+async function saveWorldSettings() {
+    if (currentWorldIndex === null || !worldsData[currentWorldIndex]) return;
+
+    const currentUser = await window.ensureAuthenticatedUser();
+    const world = worldsData[currentWorldIndex];
+    
+    const newName = document.getElementById("edit-world-name-input").value.trim();
+    if (!newName) {
+        alert("世界名を入力してください。");
+        return;
+    }
+
+    const isOnlinePublic = document.getElementById("publicCheckbox").checked;
+    const roomCode = document.getElementById("edit-world-room-code").value.trim();
+    const totalPublic = getTotalPublicCountries(world);
+
+    if (totalPublic === 0 && (isOnlinePublic || roomCode !== "")) {
+        alert("❌ 公開国が0件の世界は、公開に設定できません。\n1つ以上の国を「公開」に設定してください。");
+        return;
+    }
+
+    if (!world.ownerId && currentUser) {
+        world.ownerId = currentUser.uid;
+    }
+
+    world.name = newName;
+    
+    const clearPass = document.getElementById("edit-world-clear-password").checked;
+    const inputPassword = document.getElementById("edit-world-password-input").value;
+
+    if (clearPass) {
+        world.password = '';
+    } else if (inputPassword !== "") {
+        world.password = await hashPassword(inputPassword);
+    }
+
+    world.description = document.getElementById("edit-world-description-input").value.trim();
+    world.isOnlinePublic = isOnlinePublic;
+    world.roomCode = roomCode;
+
+    saveToLocalStorage();
+
+    await window.syncWorldToFirebaseIfOnline(world);
+
+    openEditWorld(currentWorldIndex);
+    alert("設定を保存しました！");
+}
+
+async function deleteCurrentWorldFromView() {
+    if (confirm('🗑️ この世界を完全に削除しますか？\n（皆の世界に公開中の場合、そちらからも削除されます）')) { 
+        const targetWorld = (currentViewSource === 'local') ? worldsData[currentWorldIndex] : onlineWorldsData[currentWorldIndex];
+        
+        if (targetWorld) {
+            if (targetWorld.countries) {
+                const allImagesInWorld = [];
+                Object.keys(targetWorld.countries).forEach(flagKey => {
+                    const c = targetWorld.countries[flagKey];
+                    if (c.images && Array.isArray(c.images)) {
+                        c.images.forEach(img => { 
+                            if (img) {
+                                const imgObj = typeof img === 'object' ? { ...img, flag: flagKey } : { url: img, flag: flagKey };
+                                allImagesInWorld.push(imgObj);
+                            } 
+                        });
+                    }
+                });
+                if (allImagesInWorld.length > 0) {
+                    await window.logDeletedImagesToFirebase(allImagesInWorld, 'world_deleted');
+                }
+            }
+
+            if (targetWorld.id) {
+                await window.deleteWorldFromFirebase(targetWorld.id, targetWorld.roomCode, targetWorld._originalRoomCode);
+            }
+        }
+        
+        if (currentViewSource === 'local') {
+            worldsData.splice(currentWorldIndex, 1); 
+            saveToLocalStorage(); 
+            renderWorlds(); 
+            show('worlds'); 
+        } else {
+            onlineWorldsData.splice(currentWorldIndex, 1);
+            renderOnlineWorlds(onlineWorldsData);
+            show('online-worlds');
+        }
+    }
+}
+
+async function saveWorldDescription() {
+    if (currentWorldIndex === null || !worldsData[currentWorldIndex]) return;
+
+    const world = worldsData[currentWorldIndex];
+    const newDesc = document.getElementById('edit-world-description-input').value.trim();
+    
+    world.description = newDesc;
+    saveToLocalStorage();
+    await window.syncWorldToFirebaseIfOnline(world);
+
+    alert("世界の説明を保存しました！");
+}
+
+function showCountriesList(continent, isEdit) {
+    currentContinent = continent; 
+    const world = (isEdit || currentViewSource === 'local') ? worldsData[currentWorldIndex] : onlineWorldsData[currentWorldIndex];
+    
+    if (isEdit) {
+        document.getElementById('edit-countries-title').innerText = `編集＜${continent}`;
+        const slots = document.getElementById('free-country-slots-container'); slots.innerHTML = '';
+        for (let i = 1; i <= 10; i++) {
+            const key = `${continent}_custom_${i}`, has = world.countries && world.countries[key], lbl = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩"][i-1];
+            slots.insertAdjacentHTML('beforeend', `<button onclick="openCountryForm('${key}')" style="padding: 6px 10px; border: 2px solid #000; border-radius: 8px; cursor: pointer; ${has ? 'background:#fffde6; font-weight:bold;' : 'background:#fff; color:#999;'} font-size:11px;">${lbl}${has ? ' ✏️' : ''}</button>`);
+        }
+        const container = document.getElementById('edit-regions-container'); container.innerHTML = '';
+        Object.keys(worldPresetMap[continent]).forEach(r => {
+            container.insertAdjacentHTML('beforeend', `<div class="region-section-title">${r}</div>`);
+            let gridHtml = `<div class="flag-grid">`;
+            worldPresetMap[continent][r].forEach(f => {
+                gridHtml += `<div class="flag-cell"><span class="flag-icon-click" onclick="openCountryForm('${f}')">${f}</span><span class="plus-badge">${(world.countries && world.countries[f]) ? '✏️':'＋'}</span></div>`;
+            });
+            container.insertAdjacentHTML('beforeend', gridHtml + `</div>`);
+        });
+        show('edit-countries');
+    } else {
+        document.getElementById('view-countries-title').innerText = `閲覧＜${continent}`;
+        const container = document.getElementById('view-regions-container'); container.innerHTML = '';
+        let customHtml = '';
+        for (let i = 1; i <= 10; i++) {
+            const key = `${continent}_custom_${i}`, c = world.countries ? world.countries[key] : null;
+if (c && c.isPublic) customHtml += `<button class="menu-btn" style="margin-bottom:8px; padding:10px;" onclick="viewCountryDetail('${key}', 'view-countries')">${escapeHTML(c.customName) || '特別枠 '+["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩"][i-1]}</button>`;
+        }
+        if (customHtml) container.insertAdjacentHTML('beforeend', `<div class="region-section-title">特別枠</div><div style="margin-top:5px;">${customHtml}</div>`);
+        Object.keys(worldPresetMap[continent]).forEach(r => {
+            let gridHtml = `<div class="flag-grid">`, hasF = false;
+            worldPresetMap[continent][r].forEach(f => {
+                if (world.countries && world.countries[f] && world.countries[f].isPublic) { hasF = true; gridHtml += `<div class="flag-cell"><span class="flag-icon-click" onclick="viewCountryDetail('${f}', 'view-countries')">${f}</span></div>`; }
+            });
+            if (hasF) container.insertAdjacentHTML('beforeend', `<div class="region-section-title">${r}</div>` + gridHtml + `</div>`);
+        });
+        show('view-countries');
+    }
+}
+
+function triggerFormFileSlot(idx) {
+    if (currentFormImages[idx]) {
+        openLightbox(currentFormImages[idx]);
+    } else {
+        activeSlotIndex = idx;
+        document.getElementById('dashboard-hidden-file-input').click();
+    }
+}
+
+/* ☁️ Cloudinaryダイレクトアップロード処理 */
+async function handleDashboardFileChange(event) {
+    const file = event.target.files[0]; 
+    if (!file || activeSlotIndex === null) return;
+    
+    if (!validateImageFile(file)) { 
+        event.target.value = ''; 
+        return; 
+    }
+
+    try {
+        const slotElem = document.getElementById(`f-img-slot-${activeSlotIndex}`);
+        if(slotElem) slotElem.innerHTML = '<div class="dummy-txt">圧縮・送信中...</div>';
+        const compressedBlob = await compressImage(file);
+        const imageObj = await window.uploadToCloudinary(compressedBlob);
+        currentFormImages[activeSlotIndex] = imageObj;
+        renderFormSlotsPreview();
+    } catch(err) {
+        alert("画像のアップロードに失敗しました: " + err.message);
+        renderFormSlotsPreview();
+    }
+    event.target.value = '';
+}
+
+async function removeFormSlotImage(idx, event) {
+    event.stopPropagation();
+    currentFormImages[idx] = null;
+    renderFormSlotsPreview();
+}
+
+function renderFormSlotsPreview() {
+    for (let i = 0; i < 6; i++) {
+        const slot = document.getElementById(`f-img-slot-${i}`);
+        if (!slot) continue;
+        slot.innerHTML = '';
+
+        if (currentFormImages[i]) {
+            const rawUrl = typeof currentFormImages[i] === 'object' ? currentFormImages[i].url : currentFormImages[i];
+            const safeUrl = sanitizeUrl(rawUrl);
+
+            const img = document.createElement('img');
+            img.src = safeUrl;
+
+            const delBtn = document.createElement('div');
+            delBtn.className = 'img-delete-btn';
+            delBtn.innerText = '✕';
+            delBtn.onclick = (e) => removeFormSlotImage(i, e);
+
+            slot.appendChild(img);
+            slot.appendChild(delBtn);
+        } else {
+            let label = "横長";
+            if (i === 0 || i === 1) label = "縦長";
+            if (i === 2 || i === 3) label = "正方形";
+            
+            const dummy = document.createElement('div');
+            dummy.className = 'dummy-txt';
+            dummy.innerHTML = `画像 ${i + 1}<br>(${label})<br><span style="font-size:10px;color:#aaa;">＋追加</span>`;
+            slot.appendChild(dummy);
+        }
+    }
+}
+
+function openCountryForm(flag) {
+    currentFlag = flag; 
+    window.currentFlag = flag;
+    const world = worldsData[currentWorldIndex];
+    const c = (world.countries && world.countries[flag]) ? world.countries[flag] : { isPublic: true, isRandom: true, images: [], info: '', relations: [], history: '', notes: '', customName: '', titleInfo: '', titleHistory: '', titleNotes: '' };
+    const isCustom = flag.includes('_custom_');
+    document.getElementById('form-custom-name-area').style.display = isCustom ? 'block' : 'none';
+    if (isCustom) {
+        document.getElementById('form-country-title').innerText = `自由追加枠【${["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩"][flag.split('_').pop()-1]}】の編集`;
+        document.getElementById('form-custom-name').value = c.customName || '';
+    } else { document.getElementById('form-country-title').innerText = `${flag} の編集`; }
+    document.getElementById('form-is-public').checked = c.isPublic;
+    document.getElementById('form-is-random').checked = c.isRandom !== false;
+    
+    document.getElementById('form-title-info').value = c.titleInfo || '基本情報';
+    document.getElementById('form-title-history').value = c.titleHistory || '歴史';
+    document.getElementById('form-title-notes').value = c.titleNotes || '備考欄';
+
+    document.getElementById('form-info').value = c.info || '';
+    document.getElementById('form-history').value = c.history || '';
+    document.getElementById('form-notes').value = c.notes || '';
+    syncCounter('form-info', 'counter-info', 1500); syncCounter('form-history', 'counter-history', 1500); syncCounter('form-notes', 'counter-notes', 1500);
+    
+    currentFormImages = [null, null, null, null, null, null];
+    if (c.images && Array.isArray(c.images)) {
+        c.images.forEach((img, idx) => { if (idx < 6) currentFormImages[idx] = img; });
+    }
+    renderFormSlotsPreview();
+
+    const rels = document.getElementById('form-relations-list'); rels.innerHTML = '';
+    if (c.relations && c.relations.length > 0) c.relations.forEach(r => addRelationRow(r.targetFlag, r.state));
+    else addRelationRow('', '');
+    show('country-form');
+}
+
+function addRelationRow(targetFlag, state) {
+    const safeFlag = escapeHTML(targetFlag || '');
+    const safeState = escapeHTML(state || '');
+    document.getElementById('form-relations-list').insertAdjacentHTML('beforeend', `
+        <div class="relation-row">
+            <input type="text" placeholder="国/旗" value="${safeFlag}" maxlength="15" style="width:55px; text-align:center; padding:3px; font-size:12px;" class="rel-flag">
+            <input type="text" placeholder="関係" value="${safeState}" maxlength="20" style="flex:1; padding:3px; font-size:12px;" class="rel-state">
+            <button type="button" onclick="this.parentElement.remove()" style="color:red; cursor:pointer; font-size:12px; padding:1px 4px;">✕</button>
+        </div>
+    `);
+}
+
+async function saveCountryData() {
+    const world = worldsData[currentWorldIndex]; 
+    if (!world) return;
+    if (!world.countries) world.countries = {};
+
+    const relations = [];
+    document.querySelectorAll('#form-relations-list .relation-row').forEach(row => {
+        const f = row.querySelector('.rel-flag').value.trim();
+        const s = row.querySelector('.rel-state').value.trim();
+        if (f || s) relations.push({ targetFlag: f, state: s });
+    });
+
+    const oldCountryData = world.countries[currentFlag];
+    const oldImages = oldCountryData ? (oldCountryData.images || []) : [];
+    const deletedImages = oldImages.filter(oldImg => {
+        if (!oldImg) return false;
+        const oldUrl = typeof oldImg === 'object' ? oldImg.url : oldImg;
+        return !currentFormImages.some(newImg => {
+            if (!newImg) return false;
+            const newUrl = typeof newImg === 'object' ? newImg.url : newImg;
+            return newUrl === oldUrl;
+        });
+    });
+
+    if (deletedImages.length > 0 && typeof window.logDeletedImagesToFirebase === 'function') {
+        await window.logDeletedImagesToFirebase(deletedImages, currentFlag);
+    }
+    
+    world.countries[currentFlag] = {
+        isPublic: document.getElementById('form-is-public').checked, 
+        isRandom: document.getElementById('form-is-random').checked,
+        titleInfo: document.getElementById('form-title-info').value.trim() || '基本情報',
+        titleHistory: document.getElementById('form-title-history').value.trim() || '歴史',
+        titleNotes: document.getElementById('form-title-notes').value.trim() || '備考欄',
+        info: document.getElementById('form-info').value, 
+        history: document.getElementById('form-history').value,
+        notes: document.getElementById('form-notes').value,
+        customName: document.getElementById('form-custom-name').value.trim(),
+        relations: relations,
+        images: currentFormImages
+    };
+
+    world.updatedAt = getFormattedDate();
+    saveToLocalStorage();
+
+    if (world.id && window.syncSingleCountryToFirebase) {
+        await window.syncSingleCountryToFirebase(world, currentFlag);
+    }
+
+    alert('国設定を保存しました！');
+    showCountriesList(currentContinent, true);
+}
+
+async function deleteCountryData() {
+    const world = worldsData[currentWorldIndex];
+    if (!currentFlag || !world || !world.countries || !world.countries[currentFlag]) {
+        alert("削除対象の国データが見つかりません。");
+        return;
+    }
+
+    if (!confirm(`本当に「${currentFlag}」のデータを削除しますか？`)) {
+        return;
+    }
+
+    const countryData = world.countries[currentFlag];
+
+    if (countryData.images && Array.isArray(countryData.images)) {
+        const validImages = countryData.images.filter(img => img !== null && img !== undefined);
+        if (validImages.length > 0 && typeof window.logDeletedImagesToFirebase === 'function') {
+            await window.logDeletedImagesToFirebase(validImages, currentFlag);
+        }
+    }
+
+    if (world.id && window.deleteSingleCountryFromFirebase) {
+        await window.deleteSingleCountryFromFirebase(world, currentFlag);
+    }
+
+    delete world.countries[currentFlag];
+    if (world._chunkMap) {
+        delete world._chunkMap[currentFlag];
+    }
+
+    saveToLocalStorage();
+    alert('国データを削除しました。');
+    showCountriesList(currentContinent, true);
+}
+
+function viewCountryDetail(flag, backPageId) {
+    const world = (currentViewSource === 'local') ? worldsData[currentWorldIndex] : onlineWorldsData[currentWorldIndex];
+    if (!world || !world.countries || !world.countries[flag]) return;
+    const c = world.countries[flag];
+
+    const isCustom = flag.includes('_custom_');
+    document.getElementById('detail-country-title').innerText = isCustom ? (c.customName || '特別枠') : `${flag}`;
+    
+    document.getElementById('detail-title-info').innerText = c.titleInfo || '基本情報';
+    document.getElementById('detail-title-history').innerText = c.titleHistory || '歴史';
+    document.getElementById('detail-title-notes').innerText = c.titleNotes || '備考欄';
+
+    document.getElementById('detail-info').innerText = c.info || '';
+    document.getElementById('detail-history').innerText = c.history || '';
+    document.getElementById('detail-notes').innerText = c.notes || '';
+
+    const relContainer = document.getElementById('detail-relations-container');
+    relContainer.innerHTML = '';
+    if (c.relations && c.relations.length > 0) {
+        c.relations.forEach(r => {
+relContainer.insertAdjacentHTML('beforeend', `<div><strong>${escapeHTML(r.targetFlag)}:</strong> ${escapeHTML(r.state)}</div>`);
+        });
+    } else {
+        relContainer.innerText = '（未登録）';
+    }
+
+    for (let i = 0; i < 6; i++) {
+        const slot = document.getElementById(`d-img-slot-${i}`);
+        if (!slot) continue;
+
+        if (c.images && c.images[i]) {
+            const rawUrl = typeof c.images[i] === 'object' ? c.images[i].url : c.images[i];
+            const imgUrl = sanitizeUrl(rawUrl);
+            
+            slot.innerHTML = '';
+            if (imgUrl) {
+                const imgElem = document.createElement('img');
+                imgElem.src = imgUrl;
+                imgElem.onclick = () => openLightbox(imgUrl);
+                slot.appendChild(imgElem);
+            } else {
+                slot.innerHTML = `<div class="dummy-txt">Invalid Image</div>`;
+            }
+        } else {
+            slot.innerHTML = `<div class="dummy-txt">No Image</div>`;
+        }
+    }
+
+    document.getElementById('detail-back-btn').onclick = function() { show(backPageId); };
+    show('country-detail');
+}
+
+/* 🎲 4パターンのランダム国表示処理 */
+async function openRandomPage(mode) {
+    let pool = [];
+
+    if (mode === 'local_all') {
+        worldsData.forEach(w => {
+            if (w.countries) {
+                Object.keys(w.countries).forEach(k => {
+                    const c = w.countries[k];
+                    if (c.isPublic && c.isRandom !== false) pool.push({ country: c, flag: k, world: w, source: 'local' });
+                });
+            }
+        });
+    } else if (mode === 'local_current') {
+        const w = (currentViewSource === 'local') ? worldsData[currentWorldIndex] : onlineWorldsData[currentWorldIndex];
+        if (w && w.countries) {
+            Object.keys(w.countries).forEach(k => {
+                const c = w.countries[k];
+                if (c.isPublic && c.isRandom !== false) pool.push({ country: c, flag: k, world: w, source: currentViewSource });
+            });
+        }
+    } else if (mode === 'online_public') {
+        try {
+            const list = await window.fetchOnlinePublicWorlds();
+            list.forEach(w => {
+                if ((!w.roomCode || w.roomCode === '') && w.countries) {
+                    Object.keys(w.countries).forEach(k => {
+                        const c = w.countries[k];
+                        if (c.isPublic && c.isRandom !== false) pool.push({ country: c, flag: k, world: w, source: 'online' });
+                    });
+                }
+            });
+        } catch (error) {
+            console.error('ランダムページ取得エラー:', error);
+        }
+    } else if (mode === 'online_private') {
+        const code = prompt("ルームコードを入力してください:");
+        if (!code) return;
+        try {
+            const list = await window.fetchOnlinePrivateWorlds(code.trim());
+            list.forEach(w => {
+                if (w.countries) {
+                    Object.keys(w.countries).forEach(k => {
+                        const c = w.countries[k];
+                        if (c.isPublic && c.isRandom !== false) pool.push({ country: c, flag: k, world: w, source: 'online' });
+                    });
+                }
+            });
+        } catch (error) {
+            console.error('限定公開ランダム取得エラー:', error);
+        }
+    }
+
+    if (pool.length === 0) {
+        alert("🎲 対象となる国が見つかりませんでした。");
+        return;
+    }
+
+    const selected = pool[Math.floor(Math.random() * pool.length)];
+    
+    if (selected.source === 'online') {
+        onlineWorldsData = [selected.world];
+        currentWorldIndex = 0;
+        currentViewSource = 'online';
+    } else {
+        currentWorldIndex = worldsData.findIndex(w => w.id === selected.world.id);
+        currentViewSource = 'local';
+    }
+
+    viewCountryDetail(selected.flag, 'top');
+}
+
+function promptPrivateRandom() {
+    openRandomPage('online_private');
+}
+
+window.onload = function() {
+    loadFromLocalStorage();
+    renderWorlds();
+};
+
+
+function compressImage(file, maxWidth = 800, quality = 0.75) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = (error) => reject(error);
+        reader.readAsDataURL(file);
+        
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onerror = (error) => reject(error);
+            img.src = event.target.result;
+            
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth || height > maxWidth) {
+                    if (width > height) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    } else {
+                        width = Math.round((width * maxWidth) / height);
+                        height = maxWidth;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        resolve(blob);
+                    } else {
+                        reject(new Error("Blobへの変換に失敗しました"));
+                    }
+                }, 'image/webp', quality);
+            };
+        };
+    });
+}
+
+window.trackAndLogDeletedImages = async function(oldImages, newImages = []) {
+    if (!oldImages || !Array.isArray(oldImages)) return;
+
+    const deletedImages = oldImages.filter(oldImg => {
+        if (!oldImg) return false;
+        const oldId = typeof oldImg === 'object' ? oldImg.publicId : null;
+        const oldUrl = typeof oldImg === 'object' ? oldImg.url : oldImg;
+
+        return !newImages.some(newImg => {
+            if (!newImg) return false;
+            const newId = typeof newImg === 'object' ? newImg.publicId : null;
+            const newUrl = typeof newImg === 'object' ? newImg.url : newImg;
+
+            if (oldId && newId) return oldId === newId;
+            return oldUrl === newUrl;
+        });
+    });
+
+    if (deletedImages.length > 0 && typeof window.logDeletedImagesToFirebase === 'function') {
+        await window.logDeletedImagesToFirebase(deletedImages, window.currentFlag || 'unknown');
+    }
+};
+
+const GUIDE_IMAGES = [
+  {
+    url: "https://your-domain.com/assets/images/sample_guide_01.png",
+  },
+  {
+    url: "https://your-domain.com/assets/images/sample_guide_02.png",
+  },
+  {
+    url: "https://your-domain.com/assets/images/sample_guide_03.png",
+  }
+];
+
+const toggleGuideBtn = document.getElementById("toggleGuideBtn");
+const guideImagesArea = document.getElementById("guideImagesArea");
+
+toggleGuideBtn.addEventListener("click", () => {
+  const isHidden = guideImagesArea.classList.toggle("hidden");
+  toggleGuideBtn.textContent = isHidden ? "📖 使用方法を表示" : "📖 使用方法を非表示";
+  if (!isHidden && guideImagesArea.children.length === 0) {
+    guideImagesArea.innerHTML = GUIDE_IMAGES.map((img) => `
+      <div class="guide-item-wrapper">
+        <img src="${img.url}" alt="${img.caption || '使用方法画像'}" class="guide-image-item" />
+        ${img.caption ? `<p class="guide-image-caption">${img.caption}</p>` : ''}
+      </div>
+    `).join('');
+  }
+});
+</script>
+</body>
+</html>
